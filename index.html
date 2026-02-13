@@ -1,167 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Daily Football News</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
-    }
-
-    header {
-      background: #020617;
-      padding: 15px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      flex-wrap: wrap;
-    }
-
-    input {
-      padding: 8px;
-      width: 200px;
-      border-radius: 6px;
-      border: none;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #22c55e;
-      color: white;
-    }
-
-    .news-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 15px;
-      padding: 15px;
-    }
-
-    .card {
-      background: #1e293b;
-      padding: 15px;
-      border-radius: 10px;
-      transition: 0.3s;
-    }
-
-    .card:hover {
-      transform: scale(1.02);
-    }
-
-    .card h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-
-    .card p {
-      font-size: 14px;
-      opacity: 0.8;
-    }
-
-    .card a {
-      display: inline-block;
-      margin-top: 10px;
-      color: #38bdf8;
-      text-decoration: none;
-    }
-
-    .dark-mode {
-      background: white;
-      color: black;
-    }
-
-    .dark-mode .card {
-      background: #f1f5f9;
-    }
-
-  </style>
+<meta charset="UTF-8">
+<title>FootyTrend ⚽</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family:Arial; background:#0f172a; color:white; }
+header { padding:15px; text-align:center; font-size:26px; background:#020617; }
+.news { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:15px; padding:15px; }
+.card { background:#1e293b; padding:15px; border-radius:10px; }
+.card h3 { margin:10px 0; }
+.badge { font-size:12px; opacity:0.7; }
+</style>
 </head>
 <body>
 
-<header>⚽ Daily Football News</header>
-
-<div class="controls">
-  <input type="text" id="search" placeholder="Search news...">
-  <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
-</div>
-
-<div class="news-container" id="news"></div>
+<header>⚽ FootyTrend — Daily Football Updates</header>
+<div class="news" id="news"></div>
 
 <script>
-  const RSS_FEEDS = [
-    "https://sports.ndtv.com/rss/football",
-    "https://www.mykhel.com/rss/feeds/sports-football-fb.xml"
+const FEED =
+"https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/sport/football/rss.xml";
+
+const container = document.getElementById("news");
+
+function generateSummary(title, description) {
+  const phrases = [
+    "In a major development,",
+    "Latest reports suggest",
+    "Football fans are reacting as",
+    "A significant moment unfolded when",
+    "In today’s football spotlight,"
   ];
+  const intro = phrases[Math.floor(Math.random() * phrases.length)];
+  const clean = description.replace(/<[^>]*>/g, "").slice(0, 100);
+  return `${intro} ${clean}...`;
+}
 
-  const newsContainer = document.getElementById("news");
-  const searchInput = document.getElementById("search");
-  let articles = [];
+async function loadNews() {
+  container.innerHTML = "Loading updates...";
+  const res = await fetch(FEED);
+  const data = await res.json();
 
-  async function fetchNews() {
-    newsContainer.innerHTML = "<p>Loading latest news...</p>";
-    articles = [];
+  container.innerHTML = "";
 
-    for (let feed of RSS_FEEDS) {
-      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed)}`);
-      const data = await response.json();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(data.contents, "text/xml");
-      const items = xml.querySelectorAll("item");
+  data.items.slice(0, 8).forEach(item => {
+    const summary = generateSummary(item.title, item.description);
 
-      items.forEach(item => {
-        articles.push({
-          title: item.querySelector("title").textContent,
-          link: item.querySelector("link").textContent,
-          description: item.querySelector("description").textContent
-        });
-      });
-    }
-
-    displayNews(articles);
-  }
-
-  function displayNews(list) {
-    newsContainer.innerHTML = "";
-    list.forEach(article => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <h3>${article.title}</h3>
-        <p>${article.description.slice(0, 120)}...</p>
-        <a href="${article.link}" target="_blank">Read More →</a>
-      `;
-      newsContainer.appendChild(card);
-    });
-  }
-
-  searchInput.addEventListener("input", () => {
-    const filtered = articles.filter(a =>
-      a.title.toLowerCase().includes(searchInput.value.toLowerCase())
-    );
-    displayNews(filtered);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="badge">⚽ FootyTrend Insight</div>
+      <h3>${item.title}</h3>
+      <p>${summary}</p>
+      <small>${new Date(item.pubDate).toDateString()}</small>
+    `;
+    container.appendChild(card);
   });
+}
 
-  function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-  }
-
-  // Auto refresh every 30 minutes
-  setInterval(fetchNews, 1800000);
-
-  fetchNews();
+loadNews();
 </script>
 
 </body>
