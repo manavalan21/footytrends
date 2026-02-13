@@ -8,15 +8,33 @@
 body { margin:0; font-family:Arial; background:#0f172a; color:white; }
 header { padding:15px; text-align:center; font-size:26px; background:#020617; }
 .news { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:15px; padding:15px; }
-.card { background:#1e293b; padding:15px; border-radius:10px; }
-.card h3 { margin:10px 0; }
-.badge { font-size:12px; opacity:0.7; }
+.card { background:#1e293b; padding:15px; border-radius:10px; cursor:pointer; }
+.card:hover { transform:scale(1.02); }
+.badge { font-size:12px; opacity:0.7; margin-bottom:5px; }
+.popup {
+  display:none; position:fixed; top:0; left:0;
+  width:100%; height:100%; background:#000c;
+  padding:20px; overflow:auto;
+}
+.popup-content {
+  background:#020617; padding:20px; border-radius:10px; max-width:700px; margin:auto;
+}
+button { margin-top:15px; padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 </style>
 </head>
 <body>
 
-<header>⚽ FootyTrend — Daily Football Updates</header>
+<header>⚽ FootyTrend — Football Insights</header>
 <div class="news" id="news"></div>
+
+<!-- Popup -->
+<div class="popup" id="popup">
+  <div class="popup-content">
+    <h2 id="popupTitle"></h2>
+    <p id="popupDetail"></p>
+    <button onclick="closePopup()">Close</button>
+  </div>
+</div>
 
 <script>
 const FEED =
@@ -24,39 +42,55 @@ const FEED =
 
 const container = document.getElementById("news");
 
-function generateSummary(title, description) {
-  const phrases = [
-    "In a major development,",
-    "Latest reports suggest",
-    "Football fans are reacting as",
-    "A significant moment unfolded when",
-    "In today’s football spotlight,"
-  ];
-  const intro = phrases[Math.floor(Math.random() * phrases.length)];
-  const clean = description.replace(/<[^>]*>/g, "").slice(0, 100);
-  return `${intro} ${clean}...`;
+function detectCategory(title) {
+  if (/transfer|sign|deal/i.test(title)) return "🔁 Transfers";
+  if (/win|beat|draw|defeat/i.test(title)) return "🏆 Match Result";
+  if (/international|fifa|uefa/i.test(title)) return "🌍 International";
+  if (/ronaldo|messi|mbappe|haaland/i.test(title)) return "⭐ Player Spotlight";
+  return "⚽ General";
+}
+
+function generatePreview(title) {
+  return "Latest football development making headlines.";
+}
+
+function generateDetail(title, description) {
+  const clean = description.replace(/<[^>]*>/g, "").slice(0, 200);
+  return `${clean}. This development could influence upcoming matches and team strategies.`;
 }
 
 async function loadNews() {
-  container.innerHTML = "Loading updates...";
+  container.innerHTML = "Loading insights...";
   const res = await fetch(FEED);
   const data = await res.json();
 
   container.innerHTML = "";
 
   data.items.slice(0, 8).forEach(item => {
-    const summary = generateSummary(item.title, item.description);
+    const category = detectCategory(item.title);
+    const preview = generatePreview(item.title);
+    const detail = generateDetail(item.title, item.description);
 
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="badge">⚽ FootyTrend Insight</div>
+      <div class="badge">${category}</div>
       <h3>${item.title}</h3>
-      <p>${summary}</p>
-      <small>${new Date(item.pubDate).toDateString()}</small>
+      <p>${preview}</p>
     `;
+    card.onclick = () => openPopup(item.title, detail);
     container.appendChild(card);
   });
+}
+
+function openPopup(title, detail) {
+  document.getElementById("popupTitle").innerText = title;
+  document.getElementById("popupDetail").innerText = detail;
+  document.getElementById("popup").style.display = "block";
+}
+
+function closePopup() {
+  document.getElementById("popup").style.display = "none";
 }
 
 loadNews();
